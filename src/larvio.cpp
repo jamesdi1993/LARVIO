@@ -109,6 +109,16 @@ bool LarVio::loadParameters() {
   zupt_noise_p *= zupt_noise_p;
   zupt_noise_q *= zupt_noise_q;
 
+  initial_use_gt = fsSettings["initial_use_gt"];
+  if (initial_use_gt) {
+    init_state_time = fsSettings["init_state_time"];
+    init_gyro_bias = fsSettings["initial_bg"];
+    init_acc_bias = fsSettings["initial_ba"];
+    init_orientation = fsSettings["initial_qua"];
+    init_position = fsSettings["initial_pos"];
+    init_velocity = fsSettings["initial_vel"];
+  }
+
   // The initial covariance of orientation and position can be
   // set to 0. But for velocity, bias and extrinsic parameters,
   // there should be nontrivial uncertainty.
@@ -305,6 +315,12 @@ bool LarVio::loadParameters() {
       if (use_schmidt)
           cout << "Applying Schmidt EKF" << endl;
   }
+
+  if (initial_use_gt)
+      cout << "using ground-truth for initialization..." << endl;
+  else
+      cout << "using static/dynamic initialization..." << endl;
+
   cout << "===========================================" << endl << endl;
 
   return true;

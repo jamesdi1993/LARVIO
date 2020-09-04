@@ -416,6 +416,16 @@ class LarVio {
     bool use_schmidt;
     // Remove useless nuisance state (ones with no EKF features are anchored at)
     void rmUselessNuisanceState();
+
+    // If using ground truth for initial state;
+    bool initial_use_gt;
+
+    double init_state_time;
+    Eigen::Vector3d init_gyro_bias;
+    Eigen::Vector3d init_acc_bias;
+    Eigen::Vector4d init_orientation;
+    Eigen::Vector3d init_position;
+    Eigen::Vector3d init_velocity;
 };
 
 typedef LarVio::Ptr LarVioPtr;
