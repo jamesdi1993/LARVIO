@@ -4,7 +4,7 @@
 output_dir: "/home/yubaidi/larvio_results/"
 
 # switches
-if_FEJ: 0    # 0(false) or 1(true)
+if_FEJ: 1    # 0(false) or 1(true)
 estimate_extrin: 0    # 0(false) or 1(true)
 estimate_td: 0    # 0(false) or 1(true)
 calib_imu_instrinsic: 0    # 0(false) or 1(true)
@@ -68,18 +68,18 @@ feature_translation_threshold: -1.0
 # imu and camera measurement noise parameters
 noise_gyro: 2.0000e-5
 noise_acc: 3.0000e-3
-noise_gyro_bias: 2.0000e-4
+noise_gyro_bias: 1.0000e-4
 noise_acc_bias: 2.0000e-3
 noise_feature: 0.008
 
 # filter intial values
-initial_covariance_orientation: 4e-4
-initial_covariance_velocity: 0.25
-initial_covariance_position: 1.0
-initial_covariance_gyro_bias: 4e-4
-initial_covariance_acc_bias: 0.01
-initial_covariance_extrin_rot: 3.0462e-8
-initial_covariance_extrin_trans: 9e-8
+initial_covariance_orientation: 1e-5
+initial_covariance_velocity: 1e-3
+initial_covariance_position: 1e-3
+initial_covariance_gyro_bias: 1e-5
+initial_covariance_acc_bias: 1e-3
+initial_covariance_extrin_rot: 3.0462e-8 # not used currently
+initial_covariance_extrin_trans: 9e-8 # not used currently
 
 # fej settings
 reset_fej_threshold: 10.11
