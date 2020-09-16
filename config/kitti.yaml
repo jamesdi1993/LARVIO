@@ -1,13 +1,13 @@
 %YAML:1.0
 
 # output directory
-output_dir: "/root/larvio_results/"
+output_dir: "/home/yubaidi/larvio_results/"
 
 # switches
-if_FEJ: 1    # 0(false) or 1(true)
+if_FEJ: 0    # 0(false) or 1(true)
 estimate_extrin: 0    # 0(false) or 1(true)
-estimate_td: 1    # 0(false) or 1(true)
-calib_imu_instrinsic: 1    # 0(false) or 1(true)
+estimate_td: 0    # 0(false) or 1(true)
+calib_imu_instrinsic: 0    # 0(false) or 1(true)
 
 # camera instrinsic
 camera_model: "pinhole"       # only support "pinhole"
@@ -31,10 +31,10 @@ T_cam_imu: !!opencv-matrix
    cols: 4
    dt: d
    data:
-    [-0.00108863, -0.00851207,  0.99996318, 1.14397089,
-     -0.9999764,  -0.00677767, -0.00114634,-0.24640917,
-     0.00678718,  -0.99994073, -0.00850449, 0.72609598,
-            0.0,          0.0,         0.0,        1.0]
+      [-0.00108864, -0.99997635,  0.00678718, -0.25008612,
+       -0.00851207, -0.00677767, -0.99994087,  0.73412053,
+        0.99996318, -0.00114634, -0.00850449, -1.13803616,
+               0.0,         0.0,         0.0,         1.0]
 td: 0.007
 
 # TODO: if calibrate camera instrinsic online
@@ -85,7 +85,7 @@ initial_covariance_extrin_trans: 9e-8
 reset_fej_threshold: 10.11
 
 # zupt settings
-if_ZUPT_valid: 1    # 0(false) or 1(true)
+if_ZUPT_valid: 0    # 0(false) or 1(true)
 zupt_max_feature_dis: 2e-3
 zupt_noise_v: 1e-2    # std
 zupt_noise_p: 1e-2
@@ -110,9 +110,29 @@ use_schmidt: 0    # 0(false) or 1(true)
 # if using ground-truth for initilization
 initial_use_gt: 1
 initial_state_time: 0.4
-initial_vel: [11.50625649630200, 0.00508098927674, 0.05999312318407]
-initial_pos: [4.767636742338039, 0.0458084279636351, 0.06975889926463008 ]
-initial_quat: [0.0014191276089521036, -0.0002485979101044886, 0.001379445523091375, 0.999997999998]
-initial_ba: [0.0, 0.0, 0.0]
-initial_bg: [0.0, 0.0, 0.0]
+initial_vel: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [11.50625649630200, 0.00508098927674, 0.05999312318407]
+initial_pos: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [4.767636742338039, 0.0458084279636351, 0.06975889926463008]
+initial_quat: !!opencv-matrix
+   rows: 4
+   cols: 1
+   dt: d
+   data: [0.0014191276089521036, -0.0002485979101044886, 0.001379445523091375, 0.999997999998]
+initial_ba: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [-0.0329,-0.0216,0.0061]
+initial_bg: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [0.0, 0.0, 0.0]
 

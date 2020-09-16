@@ -109,14 +109,29 @@ bool LarVio::loadParameters() {
   zupt_noise_p *= zupt_noise_p;
   zupt_noise_q *= zupt_noise_q;
 
-  initial_use_gt = fsSettings["initial_use_gt"];
+  initial_use_gt = (static_cast<int>(fsSettings["initial_use_gt"]) ? true : false);
   if (initial_use_gt) {
+
+    // very awkward...
+    cv::Mat gyro_bias_mat, acc_bias_mat, position_mat, velocity_mat, orientation_mat;
     init_state_time = fsSettings["init_state_time"];
-    init_gyro_bias = fsSettings["initial_bg"];
-    init_acc_bias = fsSettings["initial_ba"];
-    init_orientation = fsSettings["initial_qua"];
-    init_position = fsSettings["initial_pos"];
-    init_velocity = fsSettings["initial_vel"];
+    fsSettings["initial_bg"] >> gyro_bias_mat;
+    fsSettings["initial_ba"] >> acc_bias_mat;
+    fsSettings["initial_pos"] >> position_mat;
+    fsSettings["initial_vel"] >> velocity_mat;
+    fsSettings["initial_quat"] >> orientation_mat;
+
+    cv::Vec3d gyro_bias_cv = gyro_bias_mat(cv::Rect(0,0,1,3));
+    cv::Vec3d acc_bias_cv = acc_bias_mat(cv::Rect(0,0,1,3));
+    cv::Vec3d position_cv = position_mat(cv::Rect(0,0,1,3));
+    cv::Vec3d velocity_cv = velocity_mat(cv::Rect(0,0,1,3));
+    cv::Vec4d orientation_cv = orientation_mat(cv::Rect(0,0,1,4));
+
+    cv2eigen(gyro_bias_cv, init_gyro_bias);
+    cv2eigen(acc_bias_cv, init_acc_bias);
+    cv2eigen(position_cv, init_position);
+    cv2eigen(velocity_cv, init_velocity);
+    cv2eigen(orientation_cv, init_orientation);
   }
 
   // The initial covariance of orientation and position can be
@@ -316,8 +331,15 @@ bool LarVio::loadParameters() {
           cout << "Applying Schmidt EKF" << endl;
   }
 
-  if (initial_use_gt)
+  if (initial_use_gt) {
       cout << "using ground-truth for initialization..." << endl;
+      cout << "Initial Position: " << init_position(0) << "," << init_position(1) << "," << init_position(2) << endl;
+      cout << "Initial Orientation: " << init_orientation(0) << "," << init_orientation(1)  
+        << "," << init_orientation(2)  << "," << init_orientation(3) << endl;
+      cout << "Initial Velocity: " << init_velocity(0) << "," << init_velocity(1) << "," << init_velocity(2) << endl;
+      cout << "Initial ba: " << init_acc_bias(0) << "," << init_acc_bias(1) << "," << init_acc_bias(2) << endl;
+      cout << "Initial bg: " << init_gyro_bias(0) << "," << init_gyro_bias(1) << "," << init_gyro_bias(2) << endl;
+  }
   else
       cout << "using static/dynamic initialization..." << endl;
 
@@ -389,21 +411,53 @@ bool LarVio::processFeatures(MonoCameraMeasurementPtr msg,
 
   // Return if the gravity vector has not been set.
   if (!is_gravity_set) {
-      if (flexInitPtr->tryIncInit(imu_msg_buffer, msg,
+      if (initial_use_gt) {
+
+        // initialize all IMU state
+        state_server.imu_state.time = init_state_time;
+        state_server.imu_state.gyro_bias = init_gyro_bias;
+        state_server.imu_state.acc_bias = init_acc_bias;
+        state_server.imu_state.position = init_position;
+        state_server.imu_state.velocity = init_velocity;
+        state_server.imu_state.orientation = init_orientation;
+
+        // discard imu measurements earlier than the state time;
+        int usefulImuSize = 0;
+        for (const auto& imu_msg : imu_msg_buffer) {
+          double imu_time = imu_msg.timeStampToSec;
+          if (imu_time > init_state_time) break;
+          usefulImuSize++;
+        }
+        if (usefulImuSize>=imu_msg_buffer.size())
+          usefulImuSize--;
+
+        // Initialize last m_gyro and last m_acc
+        const auto& imu_msg = imu_msg_buffer[usefulImuSize];
+        m_gyro_old = imu_msg.angular_velocity;
+        m_acc_old = imu_msg.linear_acceleration;
+
+        // Earse used imu data
+        imu_msg_buffer.erase(imu_msg_buffer.begin(),
+        imu_msg_buffer.begin()+usefulImuSize);
+      }
+      else if (flexInitPtr->tryIncInit(imu_msg_buffer, msg,
               m_gyro_old, m_acc_old, state_server.imu_state)) {
-        is_gravity_set = true;
-        // Set take off time
-        take_off_stamp = state_server.imu_state.time;
-        // Set last time of last ZUPT
-        last_ZUPT_time = state_server.imu_state.time;
-        // Initialize time of last update
-        last_update_time = state_server.imu_state.time;
-        // Update FEJ imu state
-        state_server.imu_state_FEJ_now = state_server.imu_state;
-        // debug log
-        fTakeOffStamp << fixed << setprecision(9) << take_off_stamp << endl;
-      } else
-        return false;		
+        cout << "Success in initiating IMU using static/dynamic initialization." << endl;
+      } else {
+        return false;
+      }
+
+      is_gravity_set = true;
+      // Set take off time
+      take_off_stamp = state_server.imu_state.time;
+      // Set last time of last ZUPT
+      last_ZUPT_time = state_server.imu_state.time;
+      // Initialize time of last update
+      last_update_time = state_server.imu_state.time;
+      // Update FEJ imu state
+      state_server.imu_state_FEJ_now = state_server.imu_state;
+      // debug log
+      fTakeOffStamp << fixed << setprecision(9) << take_off_stamp << endl;	
   }
 
   // Propogate the IMU state.
@@ -468,6 +522,13 @@ bool LarVio::processFeatures(MonoCameraMeasurementPtr msg,
       << qbcw << " " << qbcx << " " << qbcy << " " << qbcz << " "
       << tx << " " << ty << " " << tz << endl;
 
+  cout << "Timestamp: " << state_server.imu_state.time-take_off_stamp << endl;
+  cout << "Orientation: " <<  qw << "," << qx << "," << qy << "," << qz << endl;
+  cout << "Velocity: " << vx << "," << vy << "," << vz << endl;
+  cout << "Position: "  << px << " " << py << " " << pz << endl;
+  cout << "Gyro bias: " << bgx << " " << bgy << " " << bgz << endl;
+  cout << "Acc bias: " << bax << " " << bay << " " << baz << endl;
+  cout << "==============================================" << endl;
   // Update active_slam_features for visualization
   for (auto fid : state_server.feature_states) {
     active_slam_features[fid] = map_server[fid];
